@@ -1,8 +1,5 @@
 """HiveBox Flask REST API application."""
 
-import sys
-sys.path.insert(0, "src")
-
 from flask import Flask, jsonify
 from config import APP_VERSION
 from sensebox import get_temperature
@@ -24,4 +21,3 @@ def temperature():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-    
