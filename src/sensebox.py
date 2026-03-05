@@ -1,3 +1,5 @@
+"""SenseBox API integration for fetching temperature data."""
+
 import requests
 
 SENSEBOX_IDS = [
@@ -22,7 +24,7 @@ def get_temperature():
                     if value:
                         temperatures.append(float(value))
                     break
-        except Exception:
+        except (requests.RequestException, ValueError, KeyError):
             continue
 
     if not temperatures:
