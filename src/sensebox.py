@@ -2,13 +2,22 @@
 
 import requests
 from datetime import datetime, timezone, timedelta
+import os
 
-SENSEBOX_IDS = [
-    "5eba5fbad46fb8001b799786",
-    "5c21ff8f919bf8001adf2488",
-    "5ade1acf223bd80019a1011c",
-]
+SENSEBOX_IDS = os.getenv(
+    "SENSEBOX_IDS",
+    "5eba5fbad46fb8001b799786,5c21ff8f919bf8001adf2488,5ade1acf223bd80019a1011c"
+).split(",")
 
+def get_temperature_status(temperature):
+    """Return status based on temperature value."""
+    if temperature is None:
+        return None
+    if temperature < 10:
+        return "Too Cold"
+    if temperature > 37:
+        return "Too Hot"
+    return "Good"
 
 def is_recent(timestamp_str):
     """Check if measurement is not older than 1 hour."""
@@ -19,7 +28,6 @@ def is_recent(timestamp_str):
     )
     now = datetime.now(timezone.utc)
     return now - measured_at <= timedelta(hours=1)
-
 
 def get_temperature():
     """Fetch average temperature from senseBox sensors."""

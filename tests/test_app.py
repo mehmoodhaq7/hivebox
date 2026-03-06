@@ -24,6 +24,19 @@ def test_temperature_endpoint_success(client):
         data = response.get_json()
         assert "average_temperature" in data
         assert data["unit"] == "celsius"
+        assert data["status"] == "Good"
+        
+def test_temperature_status_too_cold(client):
+    with patch("app.get_temperature", return_value=5.0):
+        response = client.get("/temperature")
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "Too Cold"
+
+def test_temperature_status_too_hot(client):
+    with patch("app.get_temperature", return_value=40.0):
+        response = client.get("/temperature")
+        assert response.status_code == 200
+        assert response.get_json()["status"] == "Too Hot"
 
 def test_temperature_endpoint_no_data(client):
     with patch("app.get_temperature", return_value=None):
