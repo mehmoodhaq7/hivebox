@@ -19,10 +19,35 @@ via openSenseMap API and exposes it through a REST API.
 
 ## How to Run
 
+### Local
+
 ```bash
+pip install -r requirements.txt
 python src/app.py
+```
+
+### Docker
+
+```bash
+docker build -t hivebox:0.0.1 .
+docker run -p 8080:8080 hivebox:0.0.1
+```
+
+## API Endpoints
+
+| Endpoint     | Method | Description                                 |
+| ------------ | ------ | ------------------------------------------- |
+| /version     | GET    | Returns current app version                 |
+| /temperature | GET    | Returns average temperature from senseBoxes |
+
+## How to Test
+
+```bash
+python -m pytest tests/ -v
 ```
 
 ## Project Status
 
-Phase 1 - Initial version with app versioning ✔️
+- Phase 1 - Initial version with app versioning ✔️
+- Phase 2 - Flask REST API + Dockerized ✔️
+- Phase 3 - Unit tests, CI pipeline, Docker best practices ✔️
