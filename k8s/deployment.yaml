@@ -17,7 +17,7 @@ spec:
       containers:
         - name: hivebox
           image: hivebox:0.0.1
-          imagePullPolicy: Always
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           env:
