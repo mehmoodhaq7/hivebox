@@ -7,6 +7,9 @@ from sensebox import get_temperature
 from cache import get_cached_temperature, set_cached_temperature
 from storage import store_temperature
 from apscheduler.schedulers.background import BackgroundScheduler
+from sensebox import get_temperature, get_accessible_count
+from cache import get_cached_temperature, set_cached_temperature, is_cache_fresh
+from config import APP_VERSION, SENSEBOX_IDS
 
 app = Flask(__name__)
 
@@ -74,6 +77,29 @@ def store():
         return jsonify({"error": "Storage failed"}), 503
 
     return jsonify({"stored": True, "key": key})
+
+@app.route("/readyz")
+def readyz():
+    """Readiness probe endpoint."""
+    total = len(SENSEBOX_IDS)
+    accessible = get_accessible_count()
+    not_accessible = total - accessible
+    threshold = (total // 2) + 1
+
+    cache_fresh = is_cache_fresh()
+
+    if not_accessible >= threshold and not cache_fresh:
+        return jsonify({
+            "status": "not ready",
+            "accessible_senseboxes": accessible,
+            "cache_fresh": cache_fresh
+        }), 503
+
+    return jsonify({
+        "status": "ready",
+        "accessible_senseboxes": accessible,
+        "cache_fresh": cache_fresh
+    }), 200
 
 if __name__ == "__main__":
     print(app.url_map)

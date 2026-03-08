@@ -2,12 +2,7 @@
 
 import requests
 from datetime import datetime, timezone, timedelta
-import os
-
-SENSEBOX_IDS = os.getenv(
-    "SENSEBOX_IDS",
-    "5eba5fbad46fb8001b799786,5c21ff8f919bf8001adf2488,5ade1acf223bd80019a1011c"
-).split(",")
+from config import SENSEBOX_IDS
 
 def get_temperature_status(temperature):
     """Return status based on temperature value."""
@@ -54,3 +49,21 @@ def get_temperature():
         return None
 
     return round(sum(temperatures) / len(temperatures), 2)
+
+def check_sensebox_accessible(box_id: str) -> bool:
+    """Check if a single senseBox is accessible."""
+    try:
+        url = f"https://api.opensensemap.org/boxes/{box_id}"
+        response = requests.get(url, timeout=5)
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+
+def get_accessible_count() -> int:
+    """Return count of accessible senseBoxes."""
+    count = 0
+    for box_id in SENSEBOX_IDS:
+        if check_sensebox_accessible(box_id):
+            count += 1
+    return count
