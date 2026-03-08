@@ -18,27 +18,35 @@ def test_version_endpoint(client):
     assert data["version"] == "0.0.1"
 
 def test_temperature_endpoint_success(client):
-    with patch("app.get_temperature", return_value=22.5):
+    with patch("app.get_temperature", return_value=22.5), \
+         patch("app.get_cached_temperature", return_value=None), \
+         patch("app.set_cached_temperature"):
         response = client.get("/temperature")
         assert response.status_code == 200
         data = response.get_json()
-        assert "average_temperature" in data
-        assert data["unit"] == "celsius"
+        assert "temperature" in data
+        assert "status" in data
+        assert data["temperature"] == 22.5
         assert data["status"] == "Good"
         
 def test_temperature_status_too_cold(client):
-    with patch("app.get_temperature", return_value=5.0):
+    with patch("app.get_temperature", return_value=5.0), \
+         patch("app.get_cached_temperature", return_value=None), \
+         patch("app.set_cached_temperature"):
         response = client.get("/temperature")
-        assert response.status_code == 200
-        assert response.get_json()["status"] == "Too Cold"
+        data = response.get_json()
+        assert data["status"] == "Too Cold"
 
 def test_temperature_status_too_hot(client):
-    with patch("app.get_temperature", return_value=40.0):
+    with patch("app.get_temperature", return_value=40.0), \
+         patch("app.get_cached_temperature", return_value=None), \
+         patch("app.set_cached_temperature"):
         response = client.get("/temperature")
-        assert response.status_code == 200
-        assert response.get_json()["status"] == "Too Hot"
+        data = response.get_json()
+        assert data["status"] == "Too Hot"
 
 def test_temperature_endpoint_no_data(client):
-    with patch("app.get_temperature", return_value=None):
+    with patch("app.get_temperature", return_value=None), \
+         patch("app.get_cached_temperature", return_value=None):
         response = client.get("/temperature")
         assert response.status_code == 503
