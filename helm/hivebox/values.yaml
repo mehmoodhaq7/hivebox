@@ -1,0 +1,29 @@
+replicaCount: 2
+
+image:
+  repository: hivebox
+  tag: "0.0.1"
+  pullPolicy: Never
+
+service:
+  type: ClusterIP
+  port: 8080
+
+ingress:
+  enabled: true
+  host: hivebox.local
+
+resources:
+  requests:
+    memory: "64Mi"
+    cpu: "100m"
+  limits:
+    memory: "128Mi"
+    cpu: "200m"
+
+env:
+  SENSEBOX_IDS: "5eba5fbad46fb8001b799786,5c21ff8f919bf8001adf2488,5ade1acf223bd80019a1011c"
+  VALKEY_HOST: "valkey"
+  VALKEY_PORT: "6379"
+  MINIO_ENDPOINT: "http://minio:9000"
+  MINIO_BUCKET: "hivebox-data"
