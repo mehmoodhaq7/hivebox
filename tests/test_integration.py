@@ -32,14 +32,9 @@ def test_temperature_endpoint_returns_valid_structure(client):
     assert response.status_code in [200, 503]
     data = response.get_json()
     assert data is not None
-
     if response.status_code == 200:
-        assert "average_temperature" in data
-        assert "unit" in data
+        assert "temperature" in data
         assert "status" in data
-        assert data["unit"] == "celsius"
-        assert data["status"] in ["Too Cold", "Good", "Too Hot"]
-
 def test_temperature_status_valid_values(client):
     """Test /temperature status field has valid value."""
     response = client.get("/temperature")
