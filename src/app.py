@@ -2,6 +2,7 @@
 
 from flask import Flask, jsonify, json
 from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_client import Gauge, Counter
 from config import APP_VERSION
 from sensebox import get_temperature
 from cache import get_cached_temperature, set_cached_temperature
@@ -32,6 +33,23 @@ scheduler.add_job(scheduled_store, "interval", minutes=5)
 scheduler.start()
 
 PrometheusMetrics(app)
+# Custom Prometheus metrics
+temperature_gauge = Gauge(
+    "hivebox_temperature_celsius",
+    "Current average temperature in celsius"
+)
+cache_hits = Counter(
+    "hivebox_cache_hits_total",
+    "Total number of cache hits"
+)
+cache_misses = Counter(
+    "hivebox_cache_misses_total",
+    "Total number of cache misses"
+)
+sensebox_accessible_gauge = Gauge(
+    "hivebox_sensebox_accessible",
+    "Number of accessible senseBoxes"
+)
 
 @app.route("/version")
 def version():
@@ -42,8 +60,10 @@ def version():
 def temperature():
     cached = get_cached_temperature()
     if cached:
+        cache_hits.inc()
         return jsonify(json.loads(cached))
 
+    cache_misses.inc()
     temp = get_temperature()
     if temp is None:
         return jsonify({"error": "Could not fetch temperature"}), 503
@@ -54,6 +74,7 @@ def temperature():
     elif temp > 36:
         status = "Too Hot"
 
+    temperature_gauge.set(temp)
     result = {"temperature": temp, "status": status}
     set_cached_temperature(json.dumps(result))
     return jsonify(result)
@@ -83,6 +104,7 @@ def readyz():
     """Readiness probe endpoint."""
     total = len(SENSEBOX_IDS)
     accessible = get_accessible_count()
+    sensebox_accessible_gauge.set(accessible)
     not_accessible = total - accessible
     threshold = (total // 2) + 1
 
