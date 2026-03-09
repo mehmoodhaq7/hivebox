@@ -3,3 +3,12 @@ __pycache__/
 .env
 *.egg-info/
 dist/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
+
+grafana-values.yaml
