@@ -49,6 +49,20 @@ module "eks" {
     }
   }
 
+  access_entries = {
+    admin = {
+      principal_arn = "arn:aws:iam::842544789365:user/mehmoodhaq"
+      policy_associations = {
+        admin = {
+          policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+          access_scope = {
+            type = "cluster"
+          }
+        }
+      }
+    }
+  }
+
   tags = {
     Project = "hivebox"
   }
