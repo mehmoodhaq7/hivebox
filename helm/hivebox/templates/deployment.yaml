@@ -30,7 +30,6 @@ spec:
               cpu: {{ .Values.resources.limits.cpu }}
           securityContext:
             allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
             capabilities:
               drop:
                 - ALL
@@ -38,8 +37,10 @@ spec:
             httpGet:
               path: /readyz
               port: {{ .Values.service.port }}
-            initialDelaySeconds: 10
-            periodSeconds: 15
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 5
+            timeoutSeconds: 10
           env:
             {{- range $key, $value := .Values.env }}
             - name: {{ $key }}

@@ -12,6 +12,10 @@ spec:
       labels:
         app: valkey
     spec:
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        fsGroup: 999
       containers:
         - name: valkey
           image: valkey/valkey:7.2

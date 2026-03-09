@@ -1,9 +1,9 @@
 replicaCount: 2
 
 image:
-  repository: hivebox
-  tag: "0.0.1"
-  pullPolicy: Never
+  repository: ghcr.io/mehmoodhaq7/hivebox
+  tag: "latest"
+  pullPolicy: Always
 
 service:
   type: ClusterIP
@@ -20,6 +20,13 @@ resources:
   limits:
     memory: "128Mi"
     cpu: "200m"
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8080
+  initialDelaySeconds: 15
+  periodSeconds: 20
+  failureThreshold: 5
 
 env:
   SENSEBOX_IDS: "5eba5fbad46fb8001b799786,5c21ff8f919bf8001adf2488,5ade1acf223bd80019a1011c"
