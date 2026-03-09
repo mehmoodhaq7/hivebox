@@ -12,6 +12,9 @@ spec:
       labels:
         app: {{ .Release.Name }}
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
       containers:
         - name: {{ .Release.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
@@ -25,6 +28,12 @@ spec:
             limits:
               memory: {{ .Values.resources.limits.memory }}
               cpu: {{ .Values.resources.limits.cpu }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           readinessProbe:
             httpGet:
               path: /readyz
