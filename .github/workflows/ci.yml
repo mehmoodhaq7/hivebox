@@ -152,11 +152,50 @@ jobs:
 
       - name: Run integration tests
         run: python -m pytest tests/test_integration.py -v
+  e2e-test:
+    name: E2E Tests with Venom
+    runs-on: ubuntu-latest
+    needs: [integration-test]
 
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create KIND cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          cluster_name: hivebox
+          config: kind-config.yaml
+
+      - name: Build Docker image
+        run: docker build -t hivebox:0.0.1 .
+
+      - name: Load image into KIND
+        run: kind load docker-image hivebox:0.0.1 --name hivebox
+
+      - name: Install Ingress-Nginx
+        run: |
+          kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+          kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+
+      - name: Deploy HiveBox
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/ingress.yaml
+          kubectl wait --for=condition=available deployment/hivebox --timeout=60s
+
+      - name: Install Venom
+        run: |
+          curl -L https://github.com/ovh/venom/releases/download/v1.1.0/venom.linux-amd64 -o /usr/local/bin/venom
+          chmod +x /usr/local/bin/venom
+
+      - name: Run E2E tests
+        run: venom run tests/e2e/hivebox.yaml --var url=http://localhost:8080
   cd:
     name: Push Docker Image to Registry
     runs-on: ubuntu-latest
-    needs: [integration-test, scan-k8s]
+    needs: [e2e-test, scan-k8s]
     if: github.ref == 'refs/heads/main'
 
     steps:
