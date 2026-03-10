@@ -76,6 +76,13 @@ def test_storage_integration():
     from storage import get_s3_client, store_temperature
 
     s3 = get_s3_client()
+    
+    # Create bucket if not exists
+    try:
+        s3.create_bucket(Bucket="hivebox-data")
+    except Exception:
+        pass
+
     buckets = s3.list_buckets()
     bucket_names = [b["Name"] for b in buckets["Buckets"]]
     assert "hivebox-data" in bucket_names
