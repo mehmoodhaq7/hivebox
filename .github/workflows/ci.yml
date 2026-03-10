@@ -177,24 +177,19 @@ jobs:
         run: |
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
           kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
-
       - name: Deploy HiveBox
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/ingress.yaml
-          kubectl wait --for=condition=available deployment/hivebox --timeout=60s
-
+          helm upgrade --install hivebox helm/hivebox \
+            --set image.pullPolicy=Never \
+            --set image.tag=0.0.1 \
+            --set image.repository=hivebox
+          kubectl wait --for=condition=ready pod -l app=hivebox --timeout=120s
       - name: Install Venom
         run: |
           curl -L https://github.com/ovh/venom/releases/download/v1.1.0/venom.linux-amd64 -o /usr/local/bin/venom
           chmod +x /usr/local/bin/venom
-
-      - name: Wait for HiveBox to be ready
-        run: kubectl wait --for=condition=ready pod -l app=hivebox --timeout=60s
       - name: Port forward HiveBox
         run: kubectl port-forward svc/hivebox 8080:8080 &
-
       - name: Wait for port forward
         run: sleep 5
       - name: Run E2E tests
