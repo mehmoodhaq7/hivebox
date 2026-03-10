@@ -156,7 +156,11 @@ jobs:
             --set image.tag=0.0.1 \
             --set image.repository=hivebox
           kubectl wait --for=condition=available deployment/hivebox --timeout=120s
-
+      - name: Port forward Valkey and MinIO
+        run: |
+          kubectl port-forward svc/valkey 6379:6379 &
+          kubectl port-forward svc/minio 9000:9000 &
+          sleep 5
       - name: Run integration tests
         run: python -m pytest tests/test_integration.py -v
   e2e-test:
