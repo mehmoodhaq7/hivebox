@@ -127,3 +127,25 @@ def test_readyz_endpoint_not_ready(client):
         assert response.status_code == 503
         data = response.get_json()
         assert data["status"] == "not ready"
+
+def test_store_endpoint(client):
+    with patch("app.store_temperature") as mock_store:
+        response = client.get("/store")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert "message" in data
+
+def test_temperature_cache_hit(client):
+    import json
+    cached_data = json.dumps({"temperature": 22.5, "status": "Good"})
+    with patch("app.get_cached_temperature", return_value=cached_data):
+        response = client.get("/temperature")
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["temperature"] == 22.5
+
+def test_get_accessible_count():
+    with patch("sensebox.check_sensebox_accessible", return_value=True):
+        from sensebox import get_accessible_count
+        result = get_accessible_count()
+        assert result == 3
