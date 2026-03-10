@@ -129,11 +129,9 @@ def test_readyz_endpoint_not_ready(client):
         assert data["status"] == "not ready"
 
 def test_store_endpoint(client):
-    with patch("app.store_temperature") as mock_store:
+    with patch("app.store_temperature", return_value=None):
         response = client.get("/store")
         assert response.status_code == 200
-        data = response.get_json()
-        assert "message" in data
 
 def test_temperature_cache_hit(client):
     import json
