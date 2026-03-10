@@ -189,6 +189,9 @@ jobs:
         run: |
           curl -L https://github.com/ovh/venom/releases/download/v1.1.0/venom.linux-amd64 -o /usr/local/bin/venom
           chmod +x /usr/local/bin/venom
+
+      - name: Wait for HiveBox to be ready
+        run: kubectl wait --for=condition=ready pod -l app=hivebox --timeout=60s
       - name: Port forward HiveBox
         run: kubectl port-forward svc/hivebox 8080:8080 &
 
