@@ -1,12 +1,55 @@
 """HiveBox Flask REST API application."""
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, json
 from prometheus_flask_exporter import PrometheusMetrics
+from prometheus_client import Gauge, Counter
 from config import APP_VERSION
-from sensebox import get_temperature, get_temperature_status
+from sensebox import get_temperature
+from cache import get_cached_temperature, set_cached_temperature
+from storage import store_temperature
+from apscheduler.schedulers.background import BackgroundScheduler
+from sensebox import get_temperature, get_accessible_count
+from cache import get_cached_temperature, set_cached_temperature, is_cache_fresh
+from config import APP_VERSION, SENSEBOX_IDS
 
 app = Flask(__name__)
+
+def scheduled_store():
+    """Background job: store temperature every 5 minutes."""
+    temp = get_temperature()
+    if temp is None:
+        return
+    status = "Too Cold"
+    if 10 <= temp <= 36:
+        status = "Good"
+    elif temp > 36:
+        status = "Too Hot"
+    data = {"temperature": temp, "status": status}
+    store_temperature(data)
+
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(scheduled_store, "interval", minutes=5)
+scheduler.start()
+
 PrometheusMetrics(app)
+# Custom Prometheus metrics
+temperature_gauge = Gauge(
+    "hivebox_temperature_celsius",
+    "Current average temperature in celsius"
+)
+cache_hits = Counter(
+    "hivebox_cache_hits_total",
+    "Total number of cache hits"
+)
+cache_misses = Counter(
+    "hivebox_cache_misses_total",
+    "Total number of cache misses"
+)
+sensebox_accessible_gauge = Gauge(
+    "hivebox_sensebox_accessible",
+    "Number of accessible senseBoxes"
+)
 
 @app.route("/version")
 def version():
@@ -15,11 +58,70 @@ def version():
 
 @app.route("/temperature")
 def temperature():
-    """Return average temperature from senseBox sensors."""
-    avg_temp = get_temperature()
-    if avg_temp is None:
-        return jsonify({"error": "No temperature data available"}), 503
-    return jsonify({"average_temperature": avg_temp, "unit": "celsius","status": get_temperature_status(avg_temp)})
+    cached = get_cached_temperature()
+    if cached:
+        cache_hits.inc()
+        return jsonify(json.loads(cached))
+
+    cache_misses.inc()
+    temp = get_temperature()
+    if temp is None:
+        return jsonify({"error": "Could not fetch temperature"}), 503
+
+    status = "Too Cold"
+    if 10 <= temp <= 36:
+        status = "Good"
+    elif temp > 36:
+        status = "Too Hot"
+
+    temperature_gauge.set(temp)
+    result = {"temperature": temp, "status": status}
+    set_cached_temperature(json.dumps(result))
+    return jsonify(result)
+
+@app.route("/store")
+def store():
+    """Manually trigger temperature data storage."""
+    temp = get_temperature()
+    if temp is None:
+        return jsonify({"error": "Could not fetch temperature"}), 503
+
+    status = "Too Cold"
+    if 10 <= temp <= 36:
+        status = "Good"
+    elif temp > 36:
+        status = "Too Hot"
+
+    data = {"temperature": temp, "status": status}
+    key = store_temperature(data)
+    if key is None:
+        return jsonify({"error": "Storage failed"}), 503
+
+    return jsonify({"stored": True, "key": key})
+
+@app.route("/readyz")
+def readyz():
+    """Readiness probe endpoint."""
+    total = len(SENSEBOX_IDS)
+    accessible = get_accessible_count()
+    sensebox_accessible_gauge.set(accessible)
+    not_accessible = total - accessible
+    threshold = (total // 2) + 1
+
+    cache_fresh = is_cache_fresh()
+
+    if not_accessible >= threshold and not cache_fresh:
+        return jsonify({
+            "status": "not ready",
+            "accessible_senseboxes": accessible,
+            "cache_fresh": cache_fresh
+        }), 503
+
+    return jsonify({
+        "status": "ready",
+        "accessible_senseboxes": accessible,
+        "cache_fresh": cache_fresh
+    }), 200
 
 if __name__ == "__main__":
     print(app.url_map)

@@ -3,3 +3,17 @@ __pycache__/
 .env
 *.egg-info/
 dist/
+
+# Terraform
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/*.tfvars
+terraform/.terraform.tfstate.lock.info
+
+grafana-values.yaml
+
+venom.exe
+venom.log
+venom.0.log

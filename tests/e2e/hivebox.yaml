@@ -1,0 +1,40 @@
+name: HiveBox E2E Tests
+testcases:
+
+  - name: version endpoint returns 200
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/version"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson.version ShouldNotBeEmpty
+
+  - name: temperature endpoint returns valid response
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/temperature"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.bodyjson.temperature ShouldNotBeEmpty
+          - result.bodyjson.status ShouldNotBeEmpty
+
+  - name: readyz endpoint returns valid response
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/readyz"
+        assertions:
+          - result.statuscode ShouldBeIn 200 503
+          - result.bodyjson.status ShouldNotBeEmpty
+
+  - name: metrics endpoint returns prometheus data
+    steps:
+      - type: http
+        method: GET
+        url: "{{.url}}/metrics"
+        assertions:
+          - result.statuscode ShouldEqual 200
+          - result.body ShouldContainSubstring hivebox_temperature_celsius
+          - result.body ShouldContainSubstring hivebox_cache_hits_total
