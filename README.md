@@ -23,6 +23,7 @@ openSenseMap API → HiveBox App → Valkey (Cache)
                               → MinIO (Storage)
                               → Prometheus Metrics
                               → Grafana Cloud (Observability)
+                              → ArgoCD (GitOps)
 ```
 
 ## How to Run
@@ -61,11 +62,19 @@ kind load docker-image hivebox:0.0.1 --name hivebox
 # Deploy infrastructure (Valkey + MinIO)
 kubectl apply -k kustomize/infrastructure/overlays/local
 
-# Deploy app
-helm upgrade --install hivebox helm/hivebox \
-  --set image.pullPolicy=Never \
-  --set image.tag=0.0.1 \
-  --set image.repository=hivebox
+# Install ArgoCD
+kubectl create namespace argocd
+kubectl apply -n argocd --server-side --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.2/manifests/install.yaml
+
+# Deploy app via ArgoCD
+kubectl apply -f argocd/application.yaml
+
+# Access ArgoCD UI
+kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl -n argocd get secret argocd-initial-admin-secret \
+  -o jsonpath="{.data.password}" | base64 -d
+# Open https://localhost:8080 — Username: admin
 ```
 
 ### Kubernetes (EKS) — Cloud
@@ -146,17 +155,24 @@ python -m pytest tests/test_app.py -v --cov=src --cov-report=xml
 
 ## CI/CD Pipeline
 
-| Job                | Description                                        |
-| ------------------ | -------------------------------------------------- |
-| `test`             | Unit tests with coverage                           |
-| `lint`             | Pylint code quality check                          |
-| `lint-dockerfile`  | Hadolint Dockerfile check                          |
-| `scan-k8s`         | Terrascan K8s security scan                        |
-| `docker`           | Docker build and test                              |
-| `integration-test` | Integration tests on KIND                          |
-| `e2e-test`         | Venom E2E tests on KIND                            |
-| `sonarcloud`       | SonarCloud code analysis                           |
-| `cd`               | Push to GHCR with SHA tag + Trivy scan (main only) |
+### CI (`ci.yml`) — runs on all branches and PRs
+
+| Job                | Description                 |
+| ------------------ | --------------------------- |
+| `test`             | Unit tests with coverage    |
+| `lint`             | Pylint code quality check   |
+| `lint-dockerfile`  | Hadolint Dockerfile check   |
+| `scan-k8s`         | Terrascan K8s security scan |
+| `docker`           | Docker build and test       |
+| `integration-test` | Integration tests on KIND   |
+| `e2e-test`         | Venom E2E tests on KIND     |
+| `sonarcloud`       | SonarCloud code analysis    |
+
+### CD (`cd.yml`) — runs after CI passes on main
+
+| Job  | Description                                                                   |
+| ---- | ----------------------------------------------------------------------------- |
+| `cd` | Build + Trivy scan + push to GHCR + update Helm values → ArgoCD syncs cluster |
 
 ## Project Status
 
@@ -165,3 +181,4 @@ python -m pytest tests/test_app.py -v --cov=src --cov-report=xml
 - Phase 3 - Unit tests, CI pipeline, Docker best practices ✔️
 - Phase 4 - Kubernetes, Observability, CD pipeline ✔️
 - Phase 5 - Caching, Storage, Helm, Kustomize, Terraform, Grafana, E2E tests ✔️
+- Phase 6 - GitOps with ArgoCD, Dependabot, Supply Chain Security ✔️
