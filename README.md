@@ -58,9 +58,14 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main
 
 kind load docker-image hivebox:0.0.1 --name hivebox
 
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml
-kubectl apply -f k8s/ingress.yaml
+# Deploy infrastructure (Valkey + MinIO)
+kubectl apply -k kustomize/infrastructure/overlays/local
+
+# Deploy app
+helm upgrade --install hivebox helm/hivebox \
+  --set image.pullPolicy=Never \
+  --set image.tag=0.0.1 \
+  --set image.repository=hivebox
 ```
 
 ### Kubernetes (EKS) — Cloud
@@ -80,6 +85,29 @@ kubectl apply -k kustomize/infrastructure/overlays/local
 # Deploy app
 helm upgrade --install hivebox helm/hivebox --namespace default
 ```
+
+## Observability
+
+Grafana Cloud is used for metrics and log aggregation.
+
+### Setup Grafana Monitoring
+
+```bash
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+
+helm upgrade --install grafana-k8s-monitoring grafana/k8s-monitoring \
+  --namespace default \
+  --values grafana-values.yaml
+```
+
+> **Note:** `grafana-values.yaml` contains sensitive credentials and is not committed to git. Create it locally with your Grafana Cloud details before deploying.
+
+### What is monitored
+
+- Kubernetes cluster metrics (CPU, Memory, Network)
+- Pod logs from all namespaces
+- Custom HiveBox metrics (temperature, cache hits/misses, accessible senseBoxes)
 
 ## API Endpoints
 
