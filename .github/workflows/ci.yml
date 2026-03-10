@@ -143,12 +143,19 @@ jobs:
           kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
           kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
 
+      - name: Deploy infrastructure
+        run: |
+          kubectl apply -k kustomize/infrastructure/overlays/local
+          kubectl wait --for=condition=available deployment/valkey --timeout=60s
+          kubectl wait --for=condition=available deployment/minio --timeout=60s
+
       - name: Deploy HiveBox
         run: |
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/ingress.yaml
-          kubectl wait --for=condition=available deployment/hivebox --timeout=60s
+          helm upgrade --install hivebox helm/hivebox \
+            --set image.pullPolicy=Never \
+            --set image.tag=0.0.1 \
+            --set image.repository=hivebox
+          kubectl wait --for=condition=available deployment/hivebox --timeout=120s
 
       - name: Run integration tests
         run: python -m pytest tests/test_integration.py -v
