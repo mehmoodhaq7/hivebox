@@ -129,12 +129,12 @@ def test_readyz_endpoint_not_ready(client):
         assert data["status"] == "not ready"
 
 def test_store_endpoint(client):
-    with patch("app.store_temperature", return_value=None), \
-         patch("app.get_temperature", return_value=22.5), \
-         patch("app.get_cached_temperature", return_value=None), \
-         patch("app.set_cached_temperature"):
+    with patch("app.store_temperature", return_value="temperature/2026-01-01.json"), \
+         patch("app.get_temperature", return_value=22.5):
         response = client.get("/store")
         assert response.status_code == 200
+        data = response.get_json()
+        assert data["stored"] is True
 
 def test_temperature_cache_hit(client):
     import json
