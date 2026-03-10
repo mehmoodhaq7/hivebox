@@ -189,7 +189,11 @@ jobs:
         run: |
           curl -L https://github.com/ovh/venom/releases/download/v1.1.0/venom.linux-amd64 -o /usr/local/bin/venom
           chmod +x /usr/local/bin/venom
+      - name: Port forward HiveBox
+        run: kubectl port-forward svc/hivebox 8080:8080 &
 
+      - name: Wait for port forward
+        run: sleep 5
       - name: Run E2E tests
         run: venom run tests/e2e/hivebox.yaml --var url=http://localhost:8080
   cd:
