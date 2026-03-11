@@ -53,22 +53,34 @@ docker run -p 8080:8080 hivebox:0.0.1
 ### Kubernetes (KIND) — Local
 
 ```bash
+# Create cluster
 kind create cluster --name hivebox --config kind-config.yaml
 
+# Install Ingress-Nginx
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-
-kind load docker-image hivebox:0.0.1 --name hivebox
+kubectl wait --namespace ingress-nginx \
+  --for=condition=ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=90s
 
 # Deploy infrastructure (Valkey + MinIO)
 kubectl apply -k kustomize/infrastructure/overlays/local
+kubectl wait --for=condition=available deployment/valkey --timeout=60s
+kubectl wait --for=condition=available deployment/minio --timeout=60s
 
 # Install ArgoCD
 kubectl create namespace argocd
 kubectl apply -n argocd --server-side --force-conflicts \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.3.2/manifests/install.yaml
+kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=120s
 
 # Deploy app via ArgoCD
 kubectl apply -f argocd/application.yaml
+kubectl wait --for=condition=available deployment/hivebox --timeout=120s
+
+# Access HiveBox
+kubectl port-forward svc/hivebox 9090:8080
+# Open http://localhost:9090
 
 # Access ArgoCD UI
 kubectl port-forward svc/argocd-server -n argocd 8080:443
