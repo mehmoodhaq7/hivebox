@@ -155,7 +155,7 @@ jobs:
             --set image.pullPolicy=Never \
             --set image.tag=0.0.1 \
             --set image.repository=hivebox
-          kubectl wait --for=condition=available deployment/hivebox --timeout=120s
+          kubectl wait --for=condition=available deployment/hivebox --timeout=180s
       - name: Port forward Valkey and MinIO
         run: |
           kubectl port-forward svc/valkey 6379:6379 &

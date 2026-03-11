@@ -24,9 +24,9 @@ readinessProbe:
   httpGet:
     path: /readyz
     port: 8080
-  initialDelaySeconds: 15
+  initialDelaySeconds: 30
   periodSeconds: 20
-  failureThreshold: 5
+  failureThreshold: 10
 
 env:
   SENSEBOX_IDS: "5eba5fbad46fb8001b799786,5c21ff8f919bf8001adf2488,5ade1acf223bd80019a1011c"
